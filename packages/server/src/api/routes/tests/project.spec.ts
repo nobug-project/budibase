@@ -1,6 +1,7 @@
 import {
   context,
   db as dbCore,
+  encryption,
   features,
   ViewName,
 } from "@budibase/backend-core"
@@ -4781,6 +4782,41 @@ describe("/projects", () => {
       })
     })
   })
+
+  it.each([false, true])(
+    "bounds decrypted output across the package (includes plaintext: %s)",
+    async includesPlaintext => {
+      await withProjectsEnabled(async () => {
+        const entries = {
+          "project.json.enc": null,
+          [includesPlaintext ? "manifest.json" : "manifest.json.enc"]: null,
+        }
+        const password = "example-password"
+        const packageBuffer = await createTarPackage(entries, async dir => {
+          for (const filename of Object.keys(entries)) {
+            const source = filename.replace(/\.enc$/, "")
+            const sourcePath = join(dir, source)
+            await fsp.writeFile(sourcePath, "")
+            await fsp.truncate(sourcePath, 60 * 1024 * 1024)
+            if (filename.endsWith(".enc")) {
+              await encryption.encryptFile({ dir, filename: source }, password)
+              await fsp.rm(sourcePath)
+            }
+          }
+        })
+
+        await config.api.project.import(
+          packageBuffer,
+          { encryptPassword: password },
+          {
+            status: 400,
+            body: { message: "Project package could not be decrypted." },
+          }
+        )
+        expect((await config.api.project.fetch()).projects).toEqual([])
+      })
+    }
+  )
 
   it("rejects packages with paths that are too deep", async () => {
     await withProjectsEnabled(async () => {
