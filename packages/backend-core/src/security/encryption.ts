@@ -151,6 +151,12 @@ async function getSaltAndIV(path: string) {
   return { salt, iv }
 }
 
+export class DecryptionSizeLimitError extends Error {
+  constructor() {
+    super("Decrypted file exceeds the size limit.")
+  }
+}
+
 export async function decryptFile(
   inputPath: string,
   outputPath: string,
@@ -183,7 +189,7 @@ export async function decryptFile(
       transform(chunk: Buffer, _encoding, callback) {
         outputBytes += chunk.length
         if (outputBytes > maxOutputBytes) {
-          callback(new Error("Decrypted file exceeds the size limit."))
+          callback(new DecryptionSizeLimitError())
           return
         }
         callback(null, chunk)
