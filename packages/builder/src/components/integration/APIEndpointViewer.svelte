@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto as gotoStore, beforeUrlChange } from "@roxi/routify"
-  import { flags, appStore } from "@/stores/builder"
+  import { flags, workspaceStore } from "@/stores/builder"
   import {
     datasources,
     hasRestTemplate,
@@ -676,7 +676,7 @@
       if (isNew && redirectIfNew && !saveAndClose) {
         markSkipUnsavedPrompt(_id)
         workspaceConnections.discardDraft()
-        goto(`/builder/workspace/${$appStore.appId}/apis/query/${_id}`)
+        goto(`/builder/workspace/${$workspaceStore.appId}/apis/query/${_id}`)
         return { ok: true }
       }
 
