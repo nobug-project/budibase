@@ -41,10 +41,6 @@ import { getQueryParams, getTableParams } from "../../db/utils"
 import sdk from "../../sdk"
 import { processTable } from "../../sdk/workspace/tables/getters"
 import { invalidateCachedVariable } from "../../threads/utils"
-import {
-  resolveProjectIds,
-  resolveUpdatedProjectIds,
-} from "../../utilities/projects"
 import { builderSocket } from "../../websockets"
 
 async function clearOAuth2TokenCaches(datasource: Datasource) {
@@ -254,10 +250,10 @@ export async function update(
     ...baseDatasource,
     ...sdk.datasources.mergeConfigs(dataSourceBody, baseDatasource),
   }
-  datasource.projectIds = await resolveUpdatedProjectIds(
-    ctx.request.body.projectIds,
-    baseDatasource.projectIds
-  )
+  datasource.projectIds = await sdk.projects.resolveUpdatedProjectIds({
+    projectIds: ctx.request.body.projectIds,
+    currentProjectIds: baseDatasource.projectIds,
+  })
   stripDatasourceEntityProjectIds(datasource)
 
   // this block is specific to GSheets, if no auth set, set it back
@@ -341,7 +337,9 @@ export async function save(
     fetchSchema,
     tablesFilter,
   } = ctx.request.body
-  datasourceData.projectIds = await resolveProjectIds(datasourceData.projectIds)
+  datasourceData.projectIds = await sdk.projects.resolveProjectIds(
+    datasourceData.projectIds
+  )
   stripDatasourceEntityProjectIds(datasourceData)
   const saveDatasource = async () => {
     const restTemplateId = datasourceData.restTemplateId

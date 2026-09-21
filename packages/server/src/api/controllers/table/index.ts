@@ -46,17 +46,13 @@ import {
 } from "../../../integrations/utils"
 import sdk from "../../../sdk"
 import { processTable } from "../../../sdk/workspace/tables/getters"
-import { publishWorkspaceInternal } from "../deploy"
+import { publishWorkspaceInternal, withPublishLock } from "../deploy"
 import {
   isRows,
   isSchema,
   validate as validateSchema,
 } from "../../../utilities/schema"
 import { handleDataImport } from "./utils"
-import {
-  resolveProjectIds,
-  resolveUpdatedProjectIds,
-} from "../../../utilities/projects"
 import { builderSocket } from "../../../websockets"
 import * as external from "./external"
 import * as internal from "./internal"
@@ -179,13 +175,13 @@ export async function save(ctx: UserCtx<SaveTableRequest, SaveTableResponse>) {
     delete table.projectIds
     delete ctx.request.body.projectIds
   } else if (isCreate) {
-    table.projectIds = await resolveProjectIds(table.projectIds)
+    table.projectIds = await sdk.projects.resolveProjectIds(table.projectIds)
   } else {
     const existingTable = await sdk.tables.getTable(table._id!)
-    table.projectIds = await resolveUpdatedProjectIds(
-      table.projectIds,
-      existingTable.projectIds
-    )
+    table.projectIds = await sdk.projects.resolveUpdatedProjectIds({
+      projectIds: table.projectIds,
+      currentProjectIds: existingTable.projectIds,
+    })
     ctx.request.body.projectIds = table.projectIds
   }
 
@@ -339,6 +335,12 @@ export async function duplicate(ctx: UserCtx<void, SaveTableResponse>) {
 }
 
 export async function publish(
+  ctx: UserCtx<PublishTableRequest, PublishTableResponse>
+) {
+  await withPublishLock(() => publishTableInternal(ctx))
+}
+
+async function publishTableInternal(
   ctx: UserCtx<PublishTableRequest, PublishTableResponse>
 ) {
   const tableId = ctx.params.tableId as string
