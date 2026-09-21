@@ -120,6 +120,38 @@ describe("/projects", () => {
     cleanupAIConfig = undefined
   })
 
+  it.each(["multiple files", "invalid fields"])(
+    "removes uploaded files when import rejects %s",
+    async rejection => {
+      await withProjectsEnabled(async () => {
+        const remove = jest.spyOn(fsp, "rm")
+        try {
+          const request = config
+            .request!.post("/api/projects/import")
+            .set(config.defaultHeaders())
+            .attach("file", Buffer.from("first"), "first.tar.gz")
+          if (rejection === "invalid fields") {
+            request.field("encryptPassword", "x".repeat(1025))
+          } else {
+            request.attach("file", Buffer.from("second"), "second.tar.gz")
+          }
+          await request.expect(400)
+
+          expect(remove).toHaveBeenCalledTimes(
+            rejection === "invalid fields" ? 1 : 2
+          )
+          for (const [path] of remove.mock.calls) {
+            await expect(fsp.access(path)).rejects.toMatchObject({
+              code: "ENOENT",
+            })
+          }
+        } finally {
+          remove.mockRestore()
+        }
+      })
+    }
+  )
+
   const readTarEntries = async (buffer: Buffer) => {
     const files = new Map<string, Buffer>()
     const parser = tar.list({
@@ -1857,6 +1889,7 @@ describe("/projects", () => {
         props: {
           ...queryScreen.props,
           testBinding: `{{ ${query._id}.rows }}`,
+          testMultilineBinding: `{{\n ${query._id}.rows\n }}`,
           testBracketBinding: `{{ [${query._id}].[rows] }}`,
           testBlockBinding: `{{#if ${query._id}.rows}}{{ ${query._id}.rows }}{{/if}}`,
           testJavascriptBinding: encodeJSBinding(
@@ -1995,6 +2028,9 @@ describe("/projects", () => {
           )
           expect(importedScreen!.props.testBinding).toBe(
             `{{ ${imported.resources.query?.[0]}.rows }}`
+          )
+          expect(importedScreen!.props.testMultilineBinding).toBe(
+            `{{\n ${imported.resources.query?.[0]}.rows\n }}`
           )
           expect(importedScreen!.props.testBracketBinding).toBe(
             `{{ [${imported.resources.query?.[0]}].[rows] }}`
@@ -2837,7 +2873,7 @@ describe("/projects", () => {
           { encryptPassword: password },
           {
             status: 400,
-            body: { message: "Project package could not be decrypted." },
+            body: { message: "Project package is too large." },
           }
         )
         expect((await config.api.project.fetch()).projects).toEqual([])
