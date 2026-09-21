@@ -2,15 +2,12 @@ import {
   context,
   db as dbCore,
   docIds,
+  encryption,
   HTTPError,
   utils,
 } from "@budibase/backend-core"
 import { helpers } from "@budibase/shared-core"
-import {
-  decodeJSBinding,
-  encodeJSBinding,
-  findHBSBlocks,
-} from "@budibase/string-templates"
+import { decodeJSBinding, encodeJSBinding } from "@budibase/string-templates"
 import {
   Agent,
   AnyDocument,
@@ -46,6 +43,7 @@ import fsp from "fs/promises"
 import { basename, join, relative } from "path"
 import { pipeline } from "stream/promises"
 import * as tar from "tar"
+import { findResourceBindingBlocks } from "../../resources/references"
 import {
   extractTableIdFromRowActionsID,
   generateAutomationID,
@@ -386,7 +384,7 @@ const remapHandlebarsReferences = (
   value: string,
   remapper: ProjectImportIdRemapper
 ) => {
-  return findHBSBlocks(value).reduce(
+  return findResourceBindingBlocks(value).reduce(
     (remapped, block) => remapped.replace(block, remapBinding(block, remapper)),
     value
   )
@@ -1201,7 +1199,10 @@ async function extractProjectPackage(
           }
         }
         await decryptFiles(tmpPath, encryptPassword, { maxOutputBytes })
-      } catch {
+      } catch (error) {
+        if (error instanceof encryption.DecryptionSizeLimitError) {
+          throw new HTTPError("Project package is too large.", 400)
+        }
         throw new HTTPError("Project package could not be decrypted.", 400)
       }
     }
