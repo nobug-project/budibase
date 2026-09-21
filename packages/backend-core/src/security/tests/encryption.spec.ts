@@ -54,7 +54,7 @@ describe("encryption", () => {
 
 describe("file decryption", () => {
   let dir: string
-  const content = Buffer.alloc(128 * 1024, "a")
+  const content = "a".repeat(128 * 1024)
   const password = "example-password"
 
   beforeEach(async () => {
@@ -75,7 +75,7 @@ describe("file decryption", () => {
         maxOutputBytes,
       })
 
-      expect(await fsp.readFile(output)).toEqual(content)
+      expect(await fsp.readFile(output, "utf8")).toEqual(content)
     }
   )
 
