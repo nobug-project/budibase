@@ -2,7 +2,7 @@
   import { isActive, goto, params } from "@roxi/routify"
   import { BUDIBASE_INTERNAL_DB_ID } from "@/constants/backend"
   import {
-    appStore,
+    workspaceStore,
     contextMenuStore,
     userSelectedResourceMap,
   } from "@/stores/builder"
@@ -78,7 +78,7 @@
 
   const refreshDataStores = async () => {
     try {
-      await appStore.refresh()
+      await workspaceStore.refresh()
     } catch (error) {
       console.error(error)
       notifications.warning(

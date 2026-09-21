@@ -28,7 +28,6 @@ async function createAgentOperationUnlocked(
     enabledTools: body.enabledTools,
     approvalPolicies: body.approvalPolicies,
     allowKnowledgeSourceDownload: body.allowKnowledgeSourceDownload ?? true,
-    escalation: body.escalation,
   })
   await propagateProjectDependencyChangesWithWarning({
     ctx,
