@@ -29,6 +29,7 @@ export enum LockName {
   PROJECT_ASSIGNMENTS = "project_assignments",
   CUSTOM_REST_TEMPLATES = "custom_rest_templates",
   CONVERSATION_ATTACHMENT = "conversation_attachment",
+  ESCALATION = "escalation",
 }
 
 export type LockOptions = {
