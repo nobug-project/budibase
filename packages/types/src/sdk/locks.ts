@@ -30,6 +30,7 @@ export enum LockName {
   RESOURCE_DUPLICATION = "resource_duplication",
   CUSTOM_REST_TEMPLATES = "custom_rest_templates",
   CONVERSATION_ATTACHMENT = "conversation_attachment",
+  ESCALATION = "escalation",
 }
 
 export type LockOptions = {
